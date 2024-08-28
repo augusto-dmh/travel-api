@@ -1,0 +1,54 @@
+** to ask the client about:
+
+- what the role 'editor' should be used for, since the role is in the description only needed in endpoint to update a travel, and is specified at the end that each 'admin' is also and 'editor'?
+- the UUIDs are good for uniquely identifying a record, but they have consequences of worst performance in long-term if the application scales to millions of users. Do you want the use of it anyway?
+- there should be a way also an endpoint to list travels and delete a travel in the application?
+- what does the travel being public or not should change in the application? You've specified only that the travels not public shouldn't be listed in the endpoint to get paginated travels. Does the endpoint to get the list of paginated tours by the travel slug should also shouldn't allow the list of tours on not public travels?
+- does it is really necessary to uniquely identify the travels by a slug? The id already uniquely identifies it.
+- does the hour in the starting/ending date is important?
+
+** database sketch
+users
+- id (PK) BIGINT UNSIGNED AUTOINCREMENT
+- email (VARCHAR(255))
+- password (CHAR(60))
+
+roles
+- id (PK) INT AUTOINCREMENT
+- name (VARCHAR(255))
+
+user_role
+- user_id (PK; FK from users; BIGINT UNSIGNED)
+- role_id (PK; FK from roles; INT)
+
+travels
+- id (PK) BIGINT UNSIGNED AUTOINCREMENT
+- isPublic (BOOLEAN)
+- slug (UK; VARCHAR(255))
+- name (VARCHAR(255))
+- description (TEXT)
+- number_of_days (INT)
+
+tours
+- id (PK) BIGINT UNSIGNED AUTOINCREMENT
+- name (VARCHAR(255))
+- starting_date (DATE)
+- ending_date (DATE)
+- price (INT)
+
+travel_tour
+- travel_id (PK; FK from travels; BIGINT UNSIGNED)
+- tour_id (PK; FK from tours; BIGINT UNSIGNED)
+
+** implementation notes
+- a trigger will be needed to store the values of the tours informed as price * 100, and an accessor will be needed to show the prices as price / 100 (e.g: 999,00).
+- documentation, feature tests, usage of php-cs-fixer and larastan are not necessary, but welcome (especially docs and tests).
+
+** plan of action
+- db structure: migrations/models/factories/seeders
+- cruds for the models
+- authentication: roles/permissions on who can access which crud features
+- visual design
+- dynamic effects with JS/Livewire
+
+(not yet defined a definitive plan of action).
