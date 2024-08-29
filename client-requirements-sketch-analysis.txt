@@ -43,6 +43,7 @@ travel_tour
 ** implementation notes
 - a trigger will be needed to store the values of the tours informed as price * 100, and an accessor will be needed to show the prices as price / 100 (e.g: 999,00).
 - documentation, feature tests, usage of php-cs-fixer and larastan are not necessary, but welcome (especially docs and tests).
+- a trigger will be needed to ensure that a tour will have a starting_date and ending_date consistent with the number of days determined by the travel it's related to.
 
 ** plan of action
 - db structure: migrations/models/factories/seeders
