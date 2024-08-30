@@ -5,8 +5,11 @@ namespace Database\Seeders;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Database\Seeders\RoleSeeder;
+use Database\Seeders\TourSeeder;
+use Database\Seeders\TravelSeeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 
 class TestDatabaseSeeder extends Seeder
 {
@@ -22,18 +25,7 @@ class TestDatabaseSeeder extends Seeder
         foreach ($users as $user) {
             $role = Role::inRandomOrder()->first();
 
-            if ($role->name === 'admin') {
-                DB::table('role_user')->insert([ // implement this logic of associating an 'admin' role to a user automatically associates an 'editor' role to them in a trigger.
-                    'role_id' => Role::where('name', 'editor')->first()->id,
-                    'user_id' => $user->id
-                ]);
-            }
-
-            DB::table('role_user')->insert([
-                'role_id' => $role->id,
-                'user_id' => $user->id
-            ]);
-
+            $user->assignRole($role);
         }
 
     }
