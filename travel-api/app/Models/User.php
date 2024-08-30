@@ -3,6 +3,8 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -48,5 +50,18 @@ class User extends Authenticatable
 
     public function roles(): BelongsToMany {
         return $this->belongsToMany(Role::class);
+    }
+
+    public function assignRole($role) {
+        $admin_role = Role::where('name', 'admin')->first();
+
+        // an admin is always also an editor
+        if ($role->name === $admin_role->name) {
+            $editor_role = Role::where('name', 'editor')->first();
+
+            $this->roles()->attach($editor_role);
+        }
+
+        $this->roles()->attach($role);
     }
 }
