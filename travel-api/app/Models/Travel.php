@@ -27,6 +27,34 @@ class Travel extends Model
         );
     }
 
+    public function name(): Attribute {
+        return Attribute::make(set: function ($value) {
+            $slug = str($value)->slug();
+            $count = 1;
+
+            $firstIteration = true;
+            while (Travel::where('slug', $slug)->exists()) {
+                if ($firstIteration) {
+                    $slug = $slug . '-' . $count;
+                    $count++;
+                    $firstIteration = false;
+                    continue;
+                }
+
+                $lastDashPosition = strrpos($slug, '-');
+                $slug = substr($slug, 0, $lastDashPosition);
+
+                $slug = $slug . '-' . $count;
+                $count++;
+            }
+
+            return [
+                'name' => $value,
+                'slug' => $slug,
+            ];
+        });
+    }
+
     public function tours(): HasMany {
         return $this->hasMany(Tour::class);
     }
