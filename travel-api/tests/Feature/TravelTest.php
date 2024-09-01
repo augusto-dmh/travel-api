@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Resources\TravelResource;
 use Tests\TestCase;
 use App\Models\Travel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -23,16 +24,16 @@ class TravelTest extends TestCase
         ]);
     }
 
-    public function test_public_paginated_travels_can_be_viewed(): void {
-        $travels = Travel::factory()->count(10)->create();
+    public function test_public_paginated_travels_are_returned(): void {
+        $travels = Travel::factory()->count(15)->create();
         $publicTravels = $travels->filter(fn($travel) => $travel->is_public);
+        $expectedResponseData = TravelResource::collection($publicTravels)->resolve();
 
         $response = $this->get(route('travel.index'));
 
         $response->assertStatus(200);
-        $response->assertViewIs('travel.index');
-        $response->assertViewHas('travels', function($viewTravels) use ($publicTravels) {
-            return count($viewTravels) === count($publicTravels);
-        });
+        $response->assertJsonPath('meta.per_page', 10);
+        $response->assertJsonPath('meta.total', count($publicTravels));
+        $response->assertJson(['data' => $expectedResponseData]);
     }
 }

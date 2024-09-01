@@ -1,9 +1,11 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api\V1;
 
 use App\Models\Travel;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use App\Http\Resources\TravelResource;
 
 class TravelController extends Controller
 {
@@ -14,7 +16,7 @@ class TravelController extends Controller
     {
         $travels = Travel::where('is_public', true)->paginate(10);
 
-        return view('travel.index', compact('travels'));
+        return TravelResource::collection($travels);
     }
 
     /**
