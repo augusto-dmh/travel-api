@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Http\Resources\TourResource;
 use Tests\TestCase;
 use App\Models\Tour;
 use App\Models\Travel;
@@ -48,5 +49,24 @@ class TourTest extends TestCase
         $this->assertDatabaseHas('tours', [
             'price' => $tour->price * 100,
         ]);
+    }
+
+    public function test_paginated_tours_can_be_got_by_travel_slug(): void {
+        $travel = Travel::factory()->create();
+        $tours = Tour::factory(10)->create([
+            'travel_id' => $travel->id,
+            // there's a trigger that ensures the difference between both dates is consistent with 'number_of_days' from the associated travel.
+            'starting_date' => now()->startOfDay()->format('Y-m-d'),
+            'ending_date' => now()->startOfDay()->addDays($travel->number_of_days)->format('Y-m-d'),
+        ]);
+        $tours->each->refresh();
+        $expectedResponseData = TourResource::collection($tours)->resolve();
+
+        $response = $this->get(route('tour.index', ['travel_slug' => $travel->slug]));
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('meta.total', count($tours));
+        $response->assertJsonPath('meta.per_page', 10);
+        $response->assertJson(['data' => $expectedResponseData]);
     }
 }
