@@ -14,10 +14,18 @@ class TourController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index($travel_slug)
-    {
-        $travel = Travel::where('slug', $travel_slug)->first();
-        $tours = Tour::where('travel_id', $travel->id)->paginate(10);
+    public function index(Travel $travel, Request $request) {
+        $query = $travel->tours()->getQuery();
+
+        $request['price_from'] && $query->where('price', '>=', $request['price_from'] * 100);
+        $request['price_to'] && $query->where('price', '<=', $request['price_to'] * 100);
+        $request['date_from'] && $query->where('starting_date', '>=', $request['date_from']);
+        $request['date_to'] && $query->where('ending_date', '<=', $request['date_to']);
+        $request['sort_by_price'] && $query->orderBy('price', $request['sort_by_price']);
+
+        $tours = $query
+        ->orderBy('starting_date')
+        ->paginate(10);
 
         return TourResource::collection($tours);
     }
