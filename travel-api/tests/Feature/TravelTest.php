@@ -29,7 +29,7 @@ class TravelTest extends TestCase
         $publicTravels = $travels->filter(fn($travel) => $travel->is_public);
         $expectedResponseData = TravelResource::collection($publicTravels)->resolve();
 
-        $response = $this->get(route('travel.index'));
+        $response = $this->get(route('api_v1.travel.index'));
 
         $response->assertStatus(200);
         $response->assertJsonPath('meta.per_page', 10);
