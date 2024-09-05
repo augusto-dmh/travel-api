@@ -62,11 +62,100 @@ class TourTest extends TestCase
         $tours->each->refresh();
         $expectedResponseData = TourResource::collection($tours)->resolve();
 
-        $response = $this->get(route('tour.index', ['travel_slug' => $travel->slug]));
+        $response = $this->get(route('api_v1.tour.index', ['travel' => $travel->slug]));
 
         $response->assertStatus(200);
         $response->assertJsonPath('meta.total', count($tours));
         $response->assertJsonPath('meta.per_page', 10);
         $response->assertJson(['data' => $expectedResponseData]);
+    }
+
+    public function test_tours_can_be_filtered_by_price(): void {
+        $travel = Travel::factory()->create();
+        $consistentDates = ['starting_date' => now()->format('Y-m-d'), 'ending_date' => now()->addDays($travel->number_of_days)->format('Y-m-d')];
+        $tourWithPricePriceHighestThanFilter = Tour::factory()->create(array_merge(['travel_id' => $travel->id, 'price' => 11], $consistentDates));
+        $tourWithPricePriceLowestThanFilter = Tour::factory()->create(array_merge(['travel_id' => $travel->id, 'price' => 4], $consistentDates));
+        $tourWithPriceAccordingToFilter = Tour::factory()->create(array_merge(['travel_id' => $travel->id, 'price' => 5], $consistentDates));
+
+        $response = $this->get("/api/v1/travels/{$travel->slug}/tours?price_from=5&price_to=10");
+
+        $response
+        ->assertStatus(200)
+        ->assertJsonMissing(['price' => '1100.00'])
+        ->assertJsonMissing(['price' => '400.00'])
+        ->assertJsonFragment(['price' => '500.00']);
+    }
+
+    public function test_tours_can_be_filtered_by_date(): void {
+        $travel = Travel::factory()->create(['number_of_days' => 5]);
+        $tourDatesAccordingToFilter = [
+            'starting_date' => '2020-05-05',
+            'ending_date' => '2020-05-10',
+        ];
+        $tourDatesNotAccordingToFilter = [
+            'starting_date' => '1990-10-10',
+            'ending_date' => '1990-10-15',
+        ];
+        $tourWithDateHighestThanFilter = Tour::factory()->create(array_merge(['travel_id' => $travel->id], $tourDatesNotAccordingToFilter));
+        $tourWithDateLowestThanFilter = Tour::factory()->create(array_merge(['travel_id' => $travel->id], $tourDatesNotAccordingToFilter));
+        $tourWithDateAccordingToFilter = Tour::factory()->create(array_merge(['travel_id' => $travel->id], $tourDatesAccordingToFilter));
+
+        $response = $this->get("/api/v1/travels/{$travel->slug}/tours?date_from=2020-05-05&date_to=2020-05-10");
+
+        $response
+            ->assertStatus(200)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonFragment([
+                'starting_date' => '2020-05-05',
+                'ending_date' => '2020-05-10',
+            ]);
+    }
+
+    public function test_tours_can_be_sorted_by_price(): void {
+        $travel = Travel::factory()->create();
+        $toursDates = [
+            'starting_date' => now()->format('Y-m-d'),
+            'ending_date' => now()->addDays($travel->number_of_days)
+        ];
+        $tourWithLowestPrice = Tour::factory()->create(array_merge([
+            'travel_id' => $travel->id, 'price' => 1
+        ], $toursDates));
+        $tourWithIntermediaryPrice = Tour::factory()->create(array_merge([
+            'travel_id' => $travel->id, 'price' => 2
+        ], $toursDates));
+        $tourWithHighestPrice = Tour::factory()->create(array_merge([
+            'travel_id' => $travel->id, 'price' => 3
+        ], $toursDates));
+
+        $response = $this->get("/api/v1/travels/$travel->slug/tours?sort_by_price=desc");
+
+        $response
+            ->assertStatus(200)
+            ->assertJsonPath('data.0.price', '300.00')
+            ->assertJsonPath('data.1.price', '200.00')
+            ->assertJsonPath('data.2.price', '100.00');
+    }
+
+    public function test_tours_can_be_sorted_by_starting_date(): void {
+        $travel = Travel::factory()->create();
+        $tourWithOldestStartingDate = Tour::factory()->create([
+            'travel_id' => $travel->id,
+            'price' => 1,
+            'starting_date' => now()->format('Y-m-d'),
+            'ending_date' => now()->addDays($travel->number_of_days),
+        ]);
+        $tourWithLatestStartingDate = Tour::factory()->create([
+            'travel_id' => $travel->id,
+            'price' => 1,
+            'starting_date' => now()->subDays($travel->number_of_days)->format('Y-m-d'),
+            'ending_date' => now()->format('Y-m-d'),
+        ]);
+
+        $response = $this->get("/api/v1/travels/$travel->slug/tours?sort_by_price=desc");
+
+        $response
+            ->assertStatus(200)
+            ->assertJsonPath('data.0.starting_date', now()->subDays($travel->number_of_days)->format('Y-m-d'))
+            ->assertJsonPath('data.1.starting_date', now()->format('Y-m-d'));
     }
 }
