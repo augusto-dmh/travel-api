@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tours', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('travel_id');
+            $table->id()->primary();
+            $table->foreignId('travel_id');
             $table->string('name');
             $table->date('starting_date');
             $table->date('ending_date');
