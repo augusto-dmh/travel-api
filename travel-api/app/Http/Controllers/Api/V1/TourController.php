@@ -8,6 +8,7 @@ use App\Models\Travel;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TourResource;
+use App\Http\Requests\StoreTourRequest;
 
 class TourController extends Controller
 {
@@ -41,9 +42,11 @@ class TourController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreTourRequest $request, Travel $travel)
     {
-        //
+        $tour = Tour::create($request->validated());
+
+        return new TourResource($tour);
     }
 
     /**
