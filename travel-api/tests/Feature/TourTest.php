@@ -3,9 +3,12 @@
 namespace Tests\Unit;
 
 use App\Http\Resources\TourResource;
+use App\Models\Role;
 use Tests\TestCase;
 use App\Models\Tour;
 use App\Models\Travel;
+use App\Models\User;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -157,5 +160,50 @@ class TourTest extends TestCase
             ->assertStatus(200)
             ->assertJsonPath('data.0.starting_date', now()->subDays($travel->number_of_days)->format('Y-m-d'))
             ->assertJsonPath('data.1.starting_date', now()->format('Y-m-d'));
+    }
+
+    public function test_guest_cannot_create_tour(): void {
+        $travel = Travel::factory()->create();
+        $tour = Tour::factory()->make();
+
+        $response = $this->postJson("/api/v1/travels/{$travel->id}/tour", array_merge($tour->toArray(), ['travel_id' => $travel->id]));
+
+        $response->assertStatus(401);
+    }
+
+    public function test_non_admin_cannot_create_tour(): void {
+        $travel = Travel::factory()->create();
+        $tour = Tour::factory()->make();
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->postJson("/api/v1/travels/{$travel->id}/tour", array_merge($tour->toArray(), ['travel_id' => $travel->id]));
+
+        $response->assertStatus(403);
+    }
+
+    public function test_admin_can_create_tour(): void {
+        $this->seed(RoleSeeder::class);
+        $travel = Travel::factory()->create(['number_of_days' => 1]);
+        $tour = Tour::factory()->make(['starting_date' => '2004-12-24', 'ending_date' => '2004-12-25']);
+        $user = User::factory()->create();
+        $user->roles()->attach(Role::where('name', 'admin')->first()->id);
+
+        $response = $this->actingAs($user)->postJson("/api/v1/travels/{$travel->id}/tour", array_merge($tour->toArray(), ['travel_id' => $travel->id]));
+
+        $response
+            ->assertStatus(201)
+            ->assertJsonFragment(['name' => $tour->name]);
+    }
+
+    public function test_cannot_create_tour_with_invalid_travel(): void {
+        $this->seed(RoleSeeder::class);
+        $nonExistentTravelId = 12345678;
+        $tour = Tour::factory()->make(['travel_id' => $nonExistentTravelId]);
+        $user = User::factory()->create();
+        $user->roles()->attach(Role::where('name', 'admin')->first()->id);
+
+        $response = $this->actingAs($user)->postJson("/api/v1/travels/{$nonExistentTravelId}/tour", array_merge($tour->toArray(), ['travel_id' => $nonExistentTravelId]));
+
+        $response->assertStatus(404);
     }
 }
