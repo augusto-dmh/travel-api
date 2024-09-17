@@ -6,6 +6,7 @@ use App\Models\Travel;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTravelRequest;
+use App\Http\Requests\UpdateTravelRequest;
 use App\Http\Resources\TravelResource;
 
 class TravelController extends Controller
@@ -57,9 +58,13 @@ class TravelController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(UpdateTravelRequest $request, Travel $travel)
     {
-        //
+        $travel->update($request->validated());
+
+        $travel->refresh();
+
+        return new TravelResource($travel);
     }
 
     /**
