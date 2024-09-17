@@ -9,6 +9,7 @@ use App\Models\Travel;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Log;
 
 class TravelTest extends TestCase
 {
@@ -70,5 +71,65 @@ class TravelTest extends TestCase
         $response = $this->post('/api/v1/travels', $travel_data);
 
         $response->assertStatus(302);
+    }
+
+    public function test_guest_cannot_update_a_travel(): void {
+        $travel = Travel::factory()->create();
+
+        $response = $this->putJson("/api/v1/travels/$travel->id", ['name' => 'new name']);
+
+        $response->assertStatus(401);
+    }
+
+    public function test_non_editor_cannot_update_a_travel(): void {
+        $this->seed(RoleSeeder::class);
+        $user = User::factory()->create();
+        $adminRole = Role::where('name', 'admin')->first();
+        $user->roles()->attach($adminRole->id);
+        $travel = Travel::factory()->create();
+
+        $response = $this->actingAs($user)->putJson("/api/v1/travels/$travel->id", ['name' => 'new name']);
+
+        $response->assertStatus(403);
+    }
+
+    public function test_editor_can_update_travel_with_valid_data(): void {
+        $this->seed(RoleSeeder::class);
+        $editorRole = Role::where('name', 'editor')->first();
+        $user = User::factory()->create();
+        $user->roles()->attach($editorRole->id);
+        $travel = Travel::factory()->create();
+
+        $response = $this->actingAs($user)->put("api/v1/travels/$travel->id", [
+            'is_public' => false,
+            'name' => 'new name',
+            'description' => 'new description',
+            'number_of_days' => 8,
+        ]);
+
+        $response
+            ->assertStatus(200)
+            ->assertJsonFragment([
+                'name' => 'new name',
+                'description' => 'new description',
+                'number_of_days' => 8
+            ]);
+    }
+
+    public function test_editor_cannot_update_travel_with_invalid_data(): void {
+        $this->seed(RoleSeeder::class);
+        $editorRole = Role::where('name', 'editor')->first();
+        $user = User::factory()->create();
+        $user->roles()->attach($editorRole->id);
+        $travel = Travel::factory()->create();
+
+        $response = $this->actingAs($user)->put("api/v1/travels/$travel->id", [
+            'is_public' => 'some string',
+            'name' => '',
+            'description' => '',
+            'number_of_days' => 'some string',
+        ]);
+
+        $response->assertStatus(422);
     }
 }
